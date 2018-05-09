@@ -1,22 +1,28 @@
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 
-# We need two inputs, one for the discriminator and one for the generator. Here we'll call the discriminator input `inputs_real` and the generator input `inputs_z`. We'll assign them the appropriate sizes for each of the networks.
-def model_inputs(real_dim, z_dim):
-    inputs_real = tf.placeholder(tf.float32, (None, real_dim), name='input_real') 
+def model_inputs(benign_dim, z_dim, attack_remains_dim):
+    inputs_benign = tf.placeholder(tf.float32, (None, benign_dim), name='input_benign') 
     inputs_z = tf.placeholder(tf.float32, (None, z_dim), name='input_z')
+    inputs_attack_remains = tf.placeholder(tf.float32, (None, attack_remains_dim), name='input_attack_remains')
     
-    return inputs_real, inputs_z
+    return inputs_benign, inputs_z, inputs_attack_remains
 
 def get_flow_dataset(filename=None):
     if filename is None:
-        return np.random.normal(size=[20000, 40])
+        feature = np.random.uniform(size=[20000,40])
+        label = np.random.randint(2, size=[20000,1])
+        return np.concatenate([feature,label], axis=1)
     else:
+        # TODO
         pass
-
-def train_test_split(dataset, train_ratio=None, train_nums=None):
-    if train_ratio is not None:
-        train_nums = int(dataset.shape[0] * train_ratio)
-        return dataset[:train_nums], dataset[train_nums:]
-    else:
-        return dataset[:train_nums], dataset[train_nums:]
+    
+def split_benign_attack(dataset):
+    benign, attack = [], []
+    for row in dataset:
+        if row[-1] == 1:
+            benign.append(row[:-1])
+        else:
+            attack.append(row[:-1])
+    return np.array(benign), np.array(attack)
