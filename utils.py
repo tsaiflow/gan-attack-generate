@@ -11,12 +11,19 @@ def model_inputs(benign_dim, z_dim, attack_remains_dim):
 
 def get_flow_dataset(filename=None):
     if filename is None:
-        feature = np.random.uniform(size=[20000,40])
+        feature = np.random.uniform(size=[20000,40]).astype(np.float32)
         label = np.random.randint(2, size=[20000,1])
         return np.concatenate([feature,label], axis=1)
     else:
         # TODO
         pass
+    
+def get_same_len_benign_attack(benign, attack, shuffle=True):
+    min_len = min(benign.shape[0], attack.shape[0])
+    if shuffle and shuffle is True:
+        np.random.shuffle(benign)
+        np.random.shuffle(attack)
+    return benign[:min_len], attack[:min_len]
     
 def split_benign_attack(dataset):
     benign, attack = [], []
