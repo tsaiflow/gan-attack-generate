@@ -13,7 +13,7 @@ def generator(z, out_dim, n_units=128, reuse=False, alpha=0.01):
         
         # Logits and tanh output
         logits = tf.layers.dense(h2, out_dim, activation=None)
-        out = tf.tanh(logits)
+        out = tf.sigmoid(logits)
         
         return out
 
