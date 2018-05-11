@@ -9,14 +9,16 @@ def model_inputs(benign_dim, z_dim, attack_remains_dim):
     
     return inputs_benign, inputs_z, inputs_attack_remains
 
-def get_flow_dataset(filename=None):
+def get_flow_dataset(filename=None, benign_label=0, attack_label=1):
     if filename is None:
         feature = np.random.uniform(size=[20000,40])
         label = np.random.randint(2, size=[20000,1])
-        return np.concatenate([feature,label], axis=1)
+        benign, attack = split_benign_attack(np.concatenate([feature,label], axis=1))
+        return get_same_len_benign_attack(benign, attack)
     else:
         # TODO
-        pass
+        df = pd.read_csv(filename)
+        return df
     
 def get_same_len_benign_attack(benign, attack, shuffle=True):
     min_len = min(benign.shape[0], attack.shape[0])
