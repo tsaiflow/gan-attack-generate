@@ -15,7 +15,7 @@ def generator(z, out_dim, n_units=128, reuse=False, alpha=0.01):
         logits = tf.layers.dense(h2, out_dim, activation=None)
         out = tf.sigmoid(logits)
         
-        return out
+        return out, h1, h2
 
 def discriminator(x, n_units=128, reuse=False, alpha=0.01):
     with tf.variable_scope('discriminator', reuse=reuse):
