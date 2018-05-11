@@ -28,7 +28,7 @@ def get_same_len_benign_attack(benign, attack, shuffle=True):
 def split_benign_attack(dataset):
     benign, attack = [], []
     for row in dataset:
-        if row[-1] == 1:
+        if row[-1] == 0:
             benign.append(row[:-1])
         else:
             attack.append(row[:-1])
