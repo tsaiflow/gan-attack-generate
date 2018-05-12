@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from sklearn.model_selection import train_test_split
 
 def model_inputs(benign_dim, z_dim, attack_remains_dim):
     inputs_benign = tf.placeholder(tf.float64, (None, benign_dim), name='input_benign') 
@@ -9,7 +10,7 @@ def model_inputs(benign_dim, z_dim, attack_remains_dim):
     
     return inputs_benign, inputs_z, inputs_attack_remains
 
-def get_flow_dataset(filename=None, benign_label=0, attack_label=1, sampling_rate=0.3):
+def get_flow_dataset(filename=None, benign_label=0, attack_label=1, train_frac=0.3):
     if filename is None:
         feature = np.random.uniform(size=[20000,40])
         label = np.random.randint(2, size=[20000,1])
@@ -23,8 +24,10 @@ def get_flow_dataset(filename=None, benign_label=0, attack_label=1, sampling_rat
         
         benign, attack = df[df[' Label'] == benign_label][RELEVANT_FEATURES], df[df[' Label'] == attack_label][RELEVANT_FEATURES]
         
-        benign, attack = benign.sample(frac=0.3), attack.sample(frac=0.3)
-        return benign.as_matrix(), attack.as_matrix()
+        benign, attack = benign.as_matrix(), attack.as_matrix()
+        benign_train, benign_test = train_test_split(benign, train_size=train_frac)
+        attack_train, attack_test = train_test_split(attack, train_size=train_frac)
+        return (benign_train, benign_test), (attack_train, attack_test) 
     
 def get_same_len_benign_attack(benign, attack, shuffle=True):
     min_len = min(benign.shape[0], attack.shape[0])
