@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import normalize
 
 def model_inputs(benign_dim, z_dim, attack_remains_dim):
     inputs_benign = tf.placeholder(tf.float64, (None, benign_dim), name='input_benign') 
@@ -44,3 +45,11 @@ def split_benign_attack(dataset):
         else:
             attack.append(row[:-1])
     return np.array(benign), np.array(attack)
+
+def max_norm(dataset):
+    dataset = dataset - dataset.min(axis=0)
+    dataset = normalize(dataset, axis=0, norm='max')
+    return dataset
+
+def parse_feature_label(row):
+    return row[:-1], tf.cast(row[-1], tf.int32)

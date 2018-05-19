@@ -45,7 +45,7 @@ def discriminator(x, n_units, reuse=False, alpha=0.01):
 
 class DiscriminatorModel(tf.keras.Model):
   def __init__(self):
-    super(GeneratorModel, self).__init__()
+    super(DiscriminatorModel, self).__init__()
     self.dense1 = tf.keras.layers.Dense(units=128)
     self.dense2 = tf.keras.layers.Dense(units=64)
 
