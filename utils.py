@@ -1,3 +1,4 @@
+import random
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -53,3 +54,15 @@ def max_norm(dataset):
 
 def parse_feature_label(row):
     return row[:-1], tf.cast(row[-1], tf.int32)
+
+def loss(model, x, y):
+    predict_y = model(x)
+    return tf.losses.sparse_softmax_cross_entropy(labels=y, logits=predict_y)
+
+def grad(model, inputs, targets):
+    with tf.GradientTape() as tape:
+        loss_value = loss(model, inputs, targets)
+    return tape.gradient(loss_value, model.variables)
+
+def sample_n_number(upper, n):
+    return random.sample({i for i in range(upper)}, n)
