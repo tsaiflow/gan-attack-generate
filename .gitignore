@@ -105,7 +105,8 @@ run-jupyter.sbatch
 slurm-*.out
 
 # model files
-checkpoints/
+CHECKPOINT/
+SUMMARY/
 
 # data files
 data/
