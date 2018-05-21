@@ -22,8 +22,11 @@ def max_norm(dataset):
 def parse_feature_label(row):
     return row[:-1], tf.cast(row[-1], tf.int32)
 
-def sample_n_number(upper, n):
-    return random.sample({i for i in range(upper)}, n)
+def sample_n_number(upper, n, rand=True):
+    if rand is True:
+        return random.sample({i for i in range(upper)}, n)
+    else:
+        return [i for i in range(n)]
 
 def discriminator_loss(discriminator_benign_outputs, discriminator_gen_outputs):
     """Original discriminator loss for GANs, with label smoothing.
@@ -101,7 +104,8 @@ def train_one_epoch(generator, discriminator, generator_optimizer,
                     discriminator_optimizer, benign_dataset, attack_dataset, 
                     step_counter,
                     log_interval,
-                    modified_feature_num):
+                    modified_feature_num,
+                    random_select_feature):
     """Trains `generator` and `discriminator` models on `dataset`.
     Args:
     generator: Generator model.
