@@ -44,7 +44,6 @@ def discriminator_loss(discriminator_benign_outputs, discriminator_gen_outputs):
         tf.ones_like(discriminator_gen_outputs),
         discriminator_gen_outputs)
     loss = loss_on_benign + loss_on_generated
-    tf.contrib.summary.scalar('discriminator_loss', loss)
     return loss
 
 def generator_loss(discriminator_gen_outputs):
@@ -60,7 +59,6 @@ def generator_loss(discriminator_gen_outputs):
     """
     loss = tf.losses.sigmoid_cross_entropy(
          tf.zeros_like(discriminator_gen_outputs), discriminator_gen_outputs)
-    tf.contrib.summary.scalar('generator_loss', loss)
     return loss
 
 def select_features(dataset, selected_feat):
@@ -118,52 +116,54 @@ def train_one_epoch(generator, discriminator, generator_optimizer,
 
     total_generator_loss = 0.0
     total_discriminator_loss = 0.0
+    with tf.device('/cpu:0'):
+        tf.assign_add(step_counter, 1)
     for (batch_index, ((benign_feat, _), (attack_feat, _))) in enumerate(zip(benign_dataset, attack_dataset)):
-        with tf.device('/cpu:0'):
-            tf.assign_add(step_counter, 1)
 
-        with tf.contrib.summary.record_summaries_every_n_global_steps(
-                log_interval, global_step=step_counter):
-            current_batch_size = benign_feat.shape[0]
-            feat_size = benign_feat.shape[1]
-            selected_feat = sample_n_number(feat_size, modified_feature_num)
-            features_to_be_modified = select_features(attack_feat, selected_feat)
+        current_batch_size = benign_feat.shape[0]
+        feat_size = benign_feat.shape[1]
+        selected_feat = sample_n_number(feat_size, modified_feature_num)
+        features_to_be_modified = select_features(attack_feat, selected_feat)
 
-            with tfe.GradientTape(persistent=True) as g:
-                generated_part_features = generator(features_to_be_modified)
-                generated_attack_feat = concatenate_generated_remained(attack_feat, generated_part_features, selected_feat)
-                
-                # check the generated attack features with original attack features
-                for i in range(feat_size):
-                    if i not in selected_feat:
-                        assert tf.reduce_all(tf.equal(generated_attack_feat[:, i], attack_feat[:, i])).numpy()
-                
-                # TODO: find how to use this
-                img_size = split_to_two_nearest_factor(feat_size)
-                tf.contrib.summary.image(
-                    'generated_attack_flow_feature',
-                    tf.cast(tf.reshape(generated_attack_feat, [-1, img_size[0], img_size[1], 1]), tf.float32),
-                    max_images=10)
+        with tfe.GradientTape(persistent=True) as g:
+            generated_part_features = generator(features_to_be_modified)
+            generated_attack_feat = concatenate_generated_remained(attack_feat, generated_part_features, selected_feat)
 
-                discriminator_gen_outputs = discriminator(generated_attack_feat)
-                discriminator_benign_outputs = discriminator(benign_feat)
-                discriminator_loss_val = discriminator_loss(discriminator_benign_outputs, discriminator_gen_outputs)
-                total_discriminator_loss += discriminator_loss_val
+            # check the generated attack features with original attack features
+            for i in range(feat_size):
+                if i not in selected_feat:
+                    assert tf.reduce_all(tf.equal(generated_attack_feat[:, i], attack_feat[:, i])).numpy()
 
-                generator_loss_val = generator_loss(discriminator_gen_outputs)
-                total_generator_loss += generator_loss_val
+            # TODO: find how to use this
+            img_size = split_to_two_nearest_factor(feat_size)
+            tf.contrib.summary.image(
+                'generated_attack_flow_feature',
+                tf.cast(tf.reshape(generated_attack_feat, [-1, img_size[0], img_size[1], 1]), tf.float32),
+                max_images=10)
 
-                generator_grad = g.gradient(generator_loss_val, generator.variables)
-                discriminator_grad = g.gradient(discriminator_loss_val,
-                                          discriminator.variables)
+            discriminator_gen_outputs = discriminator(generated_attack_feat)
+            discriminator_benign_outputs = discriminator(benign_feat)
+            discriminator_loss_val = discriminator_loss(discriminator_benign_outputs, discriminator_gen_outputs)
+            total_discriminator_loss += discriminator_loss_val
 
-            generator_optimizer.apply_gradients(
-              zip(generator_grad, generator.variables))
-            discriminator_optimizer.apply_gradients(
-              zip(discriminator_grad, discriminator.variables))
+            generator_loss_val = generator_loss(discriminator_gen_outputs)
+            total_generator_loss += generator_loss_val
 
-            if log_interval and batch_index > 0 and batch_index % log_interval == 0:
-                print('Batch #%d\tAverage Generator Loss: %.6f\t'
-                  'Average Discriminator Loss: %.6f' %
-                  (batch_index, total_generator_loss / batch_index,
-                   total_discriminator_loss / batch_index))
+            generator_grad = g.gradient(generator_loss_val, generator.variables)
+            discriminator_grad = g.gradient(discriminator_loss_val,
+                                      discriminator.variables)
+
+        generator_optimizer.apply_gradients(
+          zip(generator_grad, generator.variables))
+        discriminator_optimizer.apply_gradients(
+          zip(discriminator_grad, discriminator.variables))
+
+        if log_interval and batch_index > 0 and batch_index % log_interval == 0:
+            print('Batch #%d\tAverage Generator Loss: %.6f\t'
+              'Average Discriminator Loss: %.6f' %
+              (batch_index, total_generator_loss / batch_index,
+               total_discriminator_loss / batch_index))
+    with tf.contrib.summary.record_summaries_every_n_global_steps(
+                1, global_step=step_counter):
+        tf.contrib.summary.scalar('discriminator_loss', total_discriminator_loss)
+        tf.contrib.summary.scalar('generator_loss', total_generator_loss)
