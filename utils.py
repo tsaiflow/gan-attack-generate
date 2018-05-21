@@ -133,6 +133,11 @@ def train_one_epoch(generator, discriminator, generator_optimizer,
                 generated_part_features = generator(features_to_be_modified)
                 generated_attack_feat = concatenate_generated_remained(attack_feat, generated_part_features, selected_feat)
                 
+                # check the generated attack features with original attack features
+                for i in range(feat_size):
+                    if i not in selected_feat:
+                        assert tf.reduce_all(tf.equal(generated_attack_feat[:, i], attack_feat[:, i])).numpy()
+                
                 # TODO: find how to use this
                 img_size = split_to_two_nearest_factor(feat_size)
                 tf.contrib.summary.image(
