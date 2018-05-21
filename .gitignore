@@ -103,3 +103,10 @@ ENV/
 # hpc files
 run-jupyter.sbatch
 slurm-*.out
+
+# model files
+CHECKPOINT/
+SUMMARY/
+
+# data files
+data/

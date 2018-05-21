@@ -1,26 +1,30 @@
+import numpy as np
 import tensorflow as tf
 
-def generator(z, out_dim, n_units=128, reuse=False, alpha=0.01):
-    with tf.variable_scope('generator', reuse=reuse):
-        # Hidden layer
-        h1 = tf.layers.dense(z, n_units, activation=None)
-        # Leaky ReLU
-        h1 = tf.maximum(alpha * h1, h1)
-        
-        # Logits and tanh output
-        logits = tf.layers.dense(h1, out_dim, activation=None)
-        out = tf.tanh(logits)
-        
-        return out
+class Generator(tf.keras.Model):
+  def __init__(self, input_shape, output_shape=2):
+    super(Generator, self).__init__()
+    self.dense1 = tf.keras.layers.Dense(units=128, input_shape=(input_shape,), activation=tf.nn.leaky_relu, dtype=tf.float64)
+    self.dense2 = tf.keras.layers.Dense(units=64, activation=tf.nn.leaky_relu, dtype=tf.float64)
+    self.dense3 = tf.keras.layers.Dense(units=output_shape, activation=None, dtype=tf.float64)
 
-def discriminator(x, n_units=128, reuse=False, alpha=0.01):
-    with tf.variable_scope('discriminator', reuse=reuse):
-        # Hidden layer
-        h1 = tf.layers.dense(x, n_units, activation=None)
-        # Leaky ReLU
-        h1 = tf.maximum(alpha * h1, h1)
-        
-        logits = tf.layers.dense(h1, 1, activation=None)
-        out = tf.sigmoid(logits)
-        
-        return out, logits
+  def call(self, inputs):
+    """Run the model."""
+    result = self.dense1(inputs)
+    result = self.dense2(result)
+    result = self.dense3(result)
+    return result
+
+class Discriminator(tf.keras.Model):
+  def __init__(self):
+    super(Discriminator, self).__init__()
+    self.dense1 = tf.keras.layers.Dense(units=128, activation=tf.nn.leaky_relu, dtype=tf.float64)
+    self.dense2 = tf.keras.layers.Dense(units=64, activation=tf.nn.leaky_relu, dtype=tf.float64)
+    self.dense3 = tf.keras.layers.Dense(units=1, activation=None, dtype=tf.float64)
+
+  def call(self, inputs):
+    """Run the model."""
+    result = self.dense1(inputs)
+    result = self.dense2(result)
+    result = self.dense3(result)
+    return result
