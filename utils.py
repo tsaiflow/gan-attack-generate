@@ -1,10 +1,18 @@
 import random
+import math
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 import tensorflow.contrib.eager as tfe
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import normalize
+
+def split_to_two_nearest_factor(x):
+    sqrt_x = int(math.sqrt(x.value))
+    i = sqrt_x
+    while x % i != 0:
+        i -= 1
+    return (i, x // i)
 
 def max_norm(dataset):
     dataset = dataset - dataset.min(axis=0)
@@ -119,17 +127,17 @@ def train_one_epoch(generator, discriminator, generator_optimizer,
             current_batch_size = benign_feat.shape[0]
             feat_size = benign_feat.shape[1]
             selected_feat = sample_n_number(feat_size, modified_feature_num)
-            features_to_be_modified = select_features(attack_feat, selected_feat)#tfe.Variable(attack_feat.numpy()[:, selected_feat])
+            features_to_be_modified = select_features(attack_feat, selected_feat)
 
             with tfe.GradientTape(persistent=True) as g:
                 generated_part_features = generator(features_to_be_modified)
-#                 generated_attack_feat = attack_feat.numpy().copy()
-#                 generated_attack_feat[:, selected_feat] = generated_part_features.numpy()
-                generated_attack_feat = concatenate_generated_remained(attack_feat, generated_part_features, selected_feat)#tfe.Variable(generated_attack_feat)
+                generated_attack_feat = concatenate_generated_remained(attack_feat, generated_part_features, selected_feat)
+                
+                # TODO: find how to use this
+                img_size = split_to_two_nearest_factor(feat_size)
                 tf.contrib.summary.image(
                     'generated_attack_flow_feature',
-                    # TODO: image size
-                    tf.cast(tf.reshape(generated_attack_feat, [-1, feat_size, 1, 1]), tf.float32),
+                    tf.cast(tf.reshape(generated_attack_feat, [-1, img_size[0], img_size[1], 1]), tf.float32),
                     max_images=10)
 
                 discriminator_gen_outputs = discriminator(generated_attack_feat)
