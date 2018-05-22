@@ -26,7 +26,7 @@ def sample_n_number(upper, n, rand=True):
     if rand is True:
         return random.sample({i for i in range(upper)}, n)
     else:
-        return [i for i in range(n)]
+        return [i for i in range(upper - 1, upper - n - 1, -1)]
 
 def discriminator_loss(discriminator_benign_outputs, discriminator_gen_outputs):
     """Original discriminator loss for GANs, with label smoothing.

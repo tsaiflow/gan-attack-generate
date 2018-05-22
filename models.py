@@ -1,12 +1,14 @@
 import numpy as np
 import tensorflow as tf
 
+tanh=tf.nn.tanh
+
 class Generator(tf.keras.Model):
   def __init__(self, input_shape, output_shape=2):
     super(Generator, self).__init__()
-    self.dense1 = tf.keras.layers.Dense(units=128, input_shape=(input_shape,), activation=tf.nn.leaky_relu, dtype=tf.float64)
-    self.dense2 = tf.keras.layers.Dense(units=64, activation=tf.nn.leaky_relu, dtype=tf.float64)
-    self.dense3 = tf.keras.layers.Dense(units=32, activation=tf.nn.leaky_relu, dtype=tf.float64)
+    self.dense1 = tf.keras.layers.Dense(units=128, input_shape=(input_shape,), activation=tanh, dtype=tf.float64)
+    self.dense2 = tf.keras.layers.Dense(units=64, activation=tanh, dtype=tf.float64)
+    self.dense3 = tf.keras.layers.Dense(units=32, activation=tanh, dtype=tf.float64)
     self.dense4 = tf.keras.layers.Dense(units=output_shape, activation=None, dtype=tf.float64)
 
   def call(self, inputs):
@@ -20,8 +22,8 @@ class Generator(tf.keras.Model):
 class Discriminator(tf.keras.Model):
   def __init__(self):
     super(Discriminator, self).__init__()
-    self.dense1 = tf.keras.layers.Dense(units=128, activation=tf.nn.leaky_relu, dtype=tf.float64)
-    self.dense2 = tf.keras.layers.Dense(units=64, activation=tf.nn.leaky_relu, dtype=tf.float64)
+    self.dense1 = tf.keras.layers.Dense(units=32, activation=tanh, dtype=tf.float64)
+    self.dense2 = tf.keras.layers.Dense(units=16, activation=tanh, dtype=tf.float64)
     self.dense3 = tf.keras.layers.Dense(units=1, activation=None, dtype=tf.float64)
 
   def call(self, inputs):
