@@ -39,14 +39,24 @@ def discriminator_loss(discriminator_benign_outputs, discriminator_gen_outputs):
     Returns:
     A scalar loss Tensor.
     """
-
+    
     loss_on_benign = tf.losses.sigmoid_cross_entropy(
-        tf.zeros_like(discriminator_benign_outputs),
+        tf.ones_like(discriminator_benign_outputs),
         discriminator_benign_outputs)
     loss_on_generated = tf.losses.sigmoid_cross_entropy(
-        tf.ones_like(discriminator_gen_outputs),
+        tf.zeros_like(discriminator_gen_outputs),
         discriminator_gen_outputs)
     loss = loss_on_benign + loss_on_generated
+
+#     loss_on_benign = tf.losses.sigmoid_cross_entropy(
+#         tf.zeros_like(discriminator_benign_outputs),
+#         discriminator_benign_outputs)
+#     loss_on_generated = tf.losses.sigmoid_cross_entropy(
+#         tf.ones_like(discriminator_gen_outputs),
+#         discriminator_gen_outputs)
+#     loss = loss_on_benign + loss_on_generated
+
+
     return loss
 
 def generator_loss(discriminator_gen_outputs):
@@ -60,8 +70,13 @@ def generator_loss(discriminator_gen_outputs):
     Returns:
     A scalar loss Tensor.
     """
+    
     loss = tf.losses.sigmoid_cross_entropy(
-         tf.zeros_like(discriminator_gen_outputs), discriminator_gen_outputs)
+         tf.ones_like(discriminator_gen_outputs), discriminator_gen_outputs)
+    
+    
+#     loss = tf.losses.sigmoid_cross_entropy(
+#          tf.zeros_like(discriminator_gen_outputs), discriminator_gen_outputs)
     return loss
 
 def select_features(dataset, selected_feat):
@@ -117,12 +132,17 @@ def train_one_epoch(generator, discriminator, generator_optimizer,
     log_interval: How many steps to wait between logging and collecting
     summaries.
     """
-
-    total_generator_loss = 0.0
-    total_discriminator_loss = 0.0
+#    kc change loss into the for loop
+#     total_generator_loss = 0.0
+#     total_discriminator_loss = 0.0
     with tf.device('/cpu:0'):
         tf.assign_add(step_counter, 1)
-    for (batch_index, ((benign_feat, _), (attack_feat, _))) in enumerate(zip(benign_dataset, attack_dataset)):
+    for (batch_index, ((benign_feat, t1), (attack_feat, t2))) in enumerate(zip(benign_dataset, attack_dataset)):
+        
+        total_generator_loss = 0.0
+        total_discriminator_loss = 0.0
+        
+#         print(batch_index, benign_feat, t1, attack_feat, t2)
 
         current_batch_size = benign_feat.shape[0]
         feat_size = benign_feat.shape[1]
@@ -144,29 +164,83 @@ def train_one_epoch(generator, discriminator, generator_optimizer,
                 'generated_attack_flow_feature',
                 tf.cast(tf.reshape(generated_attack_feat, [-1, img_size[0], img_size[1], 1]), tf.float32),
                 max_images=10)
+            
+            d_step=1
+            
+            def sample_z(m,n):
+                generated_part_features = generator(features_to_be_modified)
+                generated_attack_feat = concatenate_generated_remained(attack_feat, generated_part_features, selected_feat)
+                return generated_attack_feat
+                #return np.random.uniform(-1.,1.,size=[m,n])
+            
+            
+            ##
+            for i in range(d_step):
+#                 benign_feat=benign_feat[i:i+1]
+                #generated_attack_feat= tf.convert_to_tensor(sample_z(1, benign_feat.shape[1]))
+                generated_attack_feat= tf.convert_to_tensor(sample_z(1, benign_feat.shape[1]))
+#                 print(generated_attack_feat)
+#                 print(benign_feat)
+                
+                discriminator_gen_outputs = discriminator(generated_attack_feat)
+                discriminator_benign_outputs = discriminator(benign_feat)
+                discriminator_loss_val = discriminator_loss(discriminator_benign_outputs, discriminator_gen_outputs)
+                total_discriminator_loss += discriminator_loss_val
+                discriminator_grad = g.gradient(discriminator_loss_val,
+                                      discriminator.variables)
+                discriminator_optimizer.apply_gradients(zip(discriminator_grad, discriminator.variables))
+            
+            
+                
+#             for i in range(dis_step=10):
+                
+#                 begin=sample(10)
+#                 attack= gen()
+#                 train disc(begin, attack)
+#                 loss_dis=
+            
+#             dist_params=fixed
+            
+#             bengin=10
+#             noise=
+#             attack=gen(bengin, noise)
+#             loss_gen
+                
+                
+#             discriminator_gen_outputs = discriminator(generated_attack_feat)
+#             discriminator_benign_outputs = discriminator(benign_feat)
+#             discriminator_loss_val = discriminator_loss(discriminator_benign_outputs, discriminator_gen_outputs)
+#             total_discriminator_loss += discriminator_loss_val
 
+#             discriminator_grad = g.gradient(discriminator_loss_val,
+#                                       discriminator.variables)
+#             discriminator_optimizer.apply_gradients(zip(discriminator_grad, discriminator.variables))
+            
+            ### train generator  
+#             t=np.random.randint(1,current_batch_size)
+# #             print(t)
+           
+#             benign_feat=benign_feat[t:t+1]
+            #generated_attack_feat= tf.convert_to_tensor(sample_z(1, benign_feat.shape[1]))
+            generated_part_features = generator(features_to_be_modified)
+            generated_attack_feat = concatenate_generated_remained(attack_feat, generated_part_features, selected_feat)
             discriminator_gen_outputs = discriminator(generated_attack_feat)
-            discriminator_benign_outputs = discriminator(benign_feat)
-            discriminator_loss_val = discriminator_loss(discriminator_benign_outputs, discriminator_gen_outputs)
-            total_discriminator_loss += discriminator_loss_val
-
             generator_loss_val = generator_loss(discriminator_gen_outputs)
             total_generator_loss += generator_loss_val
 
             generator_grad = g.gradient(generator_loss_val, generator.variables)
-            discriminator_grad = g.gradient(discriminator_loss_val,
-                                      discriminator.variables)
-
-        generator_optimizer.apply_gradients(
-          zip(generator_grad, generator.variables))
-        discriminator_optimizer.apply_gradients(
-          zip(discriminator_grad, discriminator.variables))
+#             discriminator_grad = g.gradient(discriminator_loss_val,
+#                                       discriminator.variables)
+            generator_optimizer.apply_gradients(
+              zip(generator_grad, generator.variables))
+#         discriminator_optimizer.apply_gradients(
+#           zip(discriminator_grad, discriminator.variables))
 
         if log_interval and batch_index > 0 and batch_index % log_interval == 0:
             print('Batch #%d\tAverage Generator Loss: %.6f\t'
               'Average Discriminator Loss: %.6f' %
-              (batch_index, total_generator_loss / batch_index,
-               total_discriminator_loss / batch_index))
+              (batch_index, total_generator_loss,
+               total_discriminator_loss))
     with tf.contrib.summary.record_summaries_every_n_global_steps(
                 1, global_step=step_counter):
         tf.contrib.summary.scalar('discriminator_loss', total_discriminator_loss)
